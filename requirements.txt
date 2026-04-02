@@ -1,14 +1,24 @@
 # =========================
 # requirements.txt
 # =========================
+# FastAPI и сервер
 fastapi>=0.135.3
 uvicorn==0.25.0
-python-multipart==0.0.9
-ultralytics>=8.3.0
-opencv-python-headless>=4.10.0
-pillow>=10.4.0
-numpy>=1.26.4
-requests
 
-torch --index-url https://download.pytorch.org/whl/cpu
-torchvision --index-url https://download.pytorch.org/whl/cpu
+# Загрузка файлов
+python-multipart==0.0.9
+
+# YOLO / Ultraytics
+ultralytics>=8.4.33
+
+# Обработка изображений
+opencv-python-headless>=4.13.0
+pillow>=12.2.0
+numpy>=1.26.4
+
+# HTTP-запросы
+requests>=2.33.1
+
+# PyTorch CPU-only
+torch>=2.11.0+cpu --index-url https://download.pytorch.org/whl/cpu
+torchvision>=0.26.0+cpu --index-url https://download.pytorch.org/whl/cpu
