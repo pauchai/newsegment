@@ -8,8 +8,14 @@ import numpy as np
 from PIL import Image
 from fastapi import FastAPI, UploadFile, File, Form
 from fastapi.middleware.cors import CORSMiddleware
-from ultralytics import YOLO
+#from ultralytics import YOLO
+try:
+    from ultralytics import YOLO
+except Exception as e:
+    print("YOLO IMPORT ERROR:", e)
+    YOLO = None
 import cv2
+print("APP STARTING...")
 
 MODEL_NAME = "yolov8n-seg.pt"
 
@@ -30,6 +36,9 @@ MODEL_CLASS_NAMES = None
 
 def get_model():
     global model, MODEL_CLASS_NAMES
+    if YOLO is None:
+        raise RuntimeError("YOLO not available")
+    
     if model is None:
         print("Loading YOLO model...")
         model = YOLO(MODEL_NAME)
@@ -95,3 +104,4 @@ async def analyze(
 
     except Exception as e:
         return {"success": False, "error": str(e)}
+print("FASTAPI CREATED") 
