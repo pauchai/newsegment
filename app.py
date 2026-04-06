@@ -1,18 +1,14 @@
-import os
 import io
 import time
 import base64
 import numpy as np
 from PIL import Image
-from fastapi import FastAPI, UploadFile, File, Form
+from fastapi import FastAPI, UploadFile, File
 from fastapi.middleware.cors import CORSMiddleware
-import cv2
-
-# ❗ УБРАЛИ загрузку модели отсюда
 from ultralytics import YOLO
 
 MODEL_NAME = "yolov8n-seg.pt"
-model = None  # ← теперь глобально пусто
+model = None
 
 app = FastAPI()
 
@@ -25,12 +21,12 @@ app.add_middleware(
 )
 
 # -------------------------
-# Lazy load модели
+# Lazy load
 # -------------------------
 def get_model():
     global model
     if model is None:
-        print("🔥 Loading YOLO model...")
+        print("🔥 Loading YOLO...")
         model = YOLO(MODEL_NAME)
     return model
 
@@ -46,14 +42,12 @@ def health():
     return {"status": "ok"}
 
 # -------------------------
-# Utils
+# Utils (БЕЗ cv2)
 # -------------------------
-def pil_to_bgr(pil_img: Image.Image):
-    return cv2.cvtColor(np.array(pil_img), cv2.COLOR_RGB2BGR)
-
-def bgr_to_base64(img):
-    _, buffer = cv2.imencode(".png", img)
-    return base64.b64encode(buffer).decode()
+def image_to_base64(img: Image.Image):
+    buffer = io.BytesIO()
+    img.save(buffer, format="PNG")
+    return base64.b64encode(buffer.getvalue()).decode()
 
 # -------------------------
 # Main endpoint
@@ -61,24 +55,30 @@ def bgr_to_base64(img):
 @app.post("/analyze")
 async def analyze(image: UploadFile = File(...)):
     try:
-        model = get_model()  # ← ЗАГРУЗКА ТОЛЬКО ЗДЕСЬ
+        model = get_model()
 
         content = await image.read()
         pil_img = Image.open(io.BytesIO(content)).convert("RGB")
-        img = pil_to_bgr(pil_img)
 
-        results = model.predict(img, imgsz=640, conf=0.25)
+        # YOLO принимает numpy
+        img_np = np.array(pil_img)
+
+        results = model.predict(img_np, imgsz=640, conf=0.25)
         result = results[0]
 
-        if result.masks is None:
-            return {"success": True, "message": "No objects found"}
+        # result.plot() возвращает numpy
+        plotted = result.plot()
 
-        output_img = result.plot()
+        # обратно в PIL
+        output_img = Image.fromarray(plotted)
 
         return {
             "success": True,
-            "image": bgr_to_base64(output_img)
+            "image": image_to_base64(output_img)
         }
 
     except Exception as e:
-        return {"success": False, "error": str(e)}
+        return {
+            "success": False,
+            "error": str(e)
+        }
